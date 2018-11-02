@@ -1,0 +1,28 @@
+{
+    "name": "p.szejna/google-calendar-api",
+    "description": "A Simple api for Google Calendar",
+    "license": "MIT",
+    "authors": [
+        {
+            "name": "Przemysław Szejna",
+            "email": "przemyslaw.szejna@gmail.com",
+            "homepage": "https://przemyslaw-szejna.pl"
+        }
+    ],
+    "require": {
+        "php": ">=5.5.0",
+        "slim/slim": "^3.1",
+        "monolog/monolog": "^1.17",
+        "google/apiclient": "^2.2",
+        "zeuxisoo/slim-whoops": "^0.6.4"
+    },
+    "autoload": {
+        "psr-4": {
+            "Application\\": "src/Application",
+            "Controller\\": "src/Controller"
+        }
+    },
+    "config": {
+        "process-timeout" : 0
+    }
+}
