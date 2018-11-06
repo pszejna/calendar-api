@@ -2,6 +2,7 @@
 
 namespace Controller;
 
+use Application\Google\CalendarService;
 use Slim\Http\Request;
 use Slim\Http\Response;
 use Application\Google\Client;
@@ -29,8 +30,7 @@ class AuthorizeController extends AbstractController
 		$applicationConfig = $this->container->get('settings')->get('application');
 		$client = new Client($applicationConfig['name'], $applicationConfig['credentials']);
 		$client->setScopes([
-			\Google_Service_Calendar::CALENDAR,
-			\Google_Service_Oauth2::USERINFO_EMAIL
+			\Google_Service_Calendar::CALENDAR
 		]);
 
 		$tokenPath = $applicationConfig['tokenPath'] . md5($args['email']);
@@ -53,49 +53,49 @@ class AuthorizeController extends AbstractController
 				]);
 			}
 
-			$oauthService = new \Google_Service_Oauth2($client);
-
-			$tokenPath = $applicationConfig['tokenPath'] . md5($oauthService->userinfo->get('email')->getEmail());
-
-			file_put_contents($tokenPath, json_encode($accessToken));
+			$calendarService = new CalendarService($client);
+			foreach ($calendarService->getCalendarList() as $calendarId) {
+                $tokenPath = $applicationConfig['tokenPath'] . md5($calendarId);
+                file_put_contents($tokenPath, json_encode($accessToken));
+            }
 
 			return $response->withJson([
 				'success' => true,
 				'message' => 'Successful authorized'
 			]);
-		} else {
-			if (file_exists($tokenPath)) {
-				$token = json_decode(file_get_contents($tokenPath), true);
-				if (!isset($token['refresh_token'])) {
-					unlink($tokenPath);
-					return $response->withStatus(401)->withJson([
-						'success' => false,
-						'message' => sprintf(
-							'Refresh token does not exists. Please revoke access to application at: %s',
-							'https://myaccount.google.com/permissions'
-						)
-					]);
-				}
-
-				return $response->withJson([
-					'success' => true,
-					'message' => 'Authorized'
-				]);
-			} else {
-				if (!$args['email']) {
-					return $response->withStatus(401)->withJson([
-						'success' => false,
-						'message' => sprintf(
-							'Not authorized. Please visit %s to grant access',
-							$request->getUri()->getBaseUrl() .
-							$this->container->router->pathFor('authorize') . '/your@address.email'
-						)
-					]);
-				}
-
-				$authUrl = $client->createAuthUrl();
-				return $response->withRedirect($authUrl);
-			}
 		}
+
+        if (file_exists($tokenPath)) {
+            $token = json_decode(file_get_contents($tokenPath), true);
+            if (!isset($token['refresh_token'])) {
+                unlink($tokenPath);
+                return $response->withStatus(401)->withJson([
+                    'success' => false,
+                    'message' => sprintf(
+                        'Refresh token does not exists. Please revoke access to application at: %s',
+                        'https://myaccount.google.com/permissions'
+                    )
+                ]);
+            }
+
+            return $response->withJson([
+                'success' => true,
+                'message' => 'Authorized'
+            ]);
+        }
+
+        if (!$args['email']) {
+            return $response->withStatus(401)->withJson([
+                'success' => false,
+                'message' => sprintf(
+                    'Not authorized. Please visit %s to grant access',
+                    $request->getUri()->getBaseUrl() .
+                    $this->container->router->pathFor('authorize') . '/your@address.email'
+                )
+            ]);
+        }
+
+        $authUrl = $client->createAuthUrl();
+        return $response->withRedirect($authUrl);
 	}
 }

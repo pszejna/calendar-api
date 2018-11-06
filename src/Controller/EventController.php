@@ -36,70 +36,71 @@ class EventController extends AbstractController
 			return $response->withStatus(401)->withJson([
 				'success' => false,
 				'message' => 'Unauthorized. Please visit ' .
-				             $request->getUri()->getBaseUrl() .
-				             $this->container->router->pathFor('authorize') . '/' . $calendarId
+                     $request->getUri()->getBaseUrl() .
+                     $this->container->router->pathFor('authorize') . '/' . $calendarId
 			]);
-		} else {
-			try {
-				// setup clients
-				$client->setToken($tokenPath);
-				$isAccessTokenExpired = $client->isAccessTokenExpired();
-				if ($isAccessTokenExpired) {
-					$client->refreshToken($client->getRefreshToken());
-				}
-
-				$event = EventFactory::create($customerTag, $request->getParams());
-
-				$calendar = new CalendarService($client);
-				$calendar->events->insert(
-					$calendarId,
-					$event->prepare()
-				);
-
-				return $response->withJson([
-					'success' => true,
-					'message' => 'Event added'
-				]);
-			} catch (EventNotFoundException $exception) {
-				return $response->withStatus(400)->withJson([
-					'success' => false,
-					'mesage' => $exception->getMessage()
-				]);
-			} catch (\Google_Exception $exception) {
-				if ( $calendar ) {
-					try {
-						$calendar->events->update(
-							$calendarId,
-							$event->getId(),
-							$event->prepare()
-						);
-						return $response->withJson( [
-							'success' => true,
-							'message' => 'Event updated'
-						] );
-					} catch (\Google_Service_Exception $exception) {
-						return $response->withStatus(500)->withJson( [
-							'success' => false,
-							'message' => 'Calendar not found'
-						] );
-					}
-				}
-
-				return $response->withStatus(500)->withJson( [
-					'success' => false,
-					'message' => $exception->getMessage()
-				] );
-			} catch (\Google_Service_Exception $exception) {
-				return $response->withStatus(500)->withJson( [
-					'success' => false,
-					'message' => 'Calendar not found'
-				] );
-			} catch (\Exception $exception) {
-				return $response->withStatus(500)->withJson([
-					'success' => false,
-					'message' => $exception->getMessage()
-				]);
-			}
 		}
+
+        try {
+            // setup clients
+            $client->setToken($tokenPath);
+            $isAccessTokenExpired = $client->isAccessTokenExpired();
+            if ($isAccessTokenExpired) {
+                $client->refreshToken($client->getRefreshToken());
+            }
+
+            $event = EventFactory::create($customerTag, $request->getParams());
+
+            $calendar = new CalendarService($client);
+            $calendar->events->insert(
+                $calendarId,
+                $event->prepare()
+            );
+
+            return $response->withJson([
+                'success' => true,
+                'message' => 'Event added'
+            ]);
+        } catch (EventNotFoundException $exception) {
+            return $response->withStatus(400)->withJson([
+                'success' => false,
+                'mesage' => $exception->getMessage()
+            ]);
+        } catch (\Google_Exception $exception) {
+            if ( $calendar ) {
+                try {
+                    $calendar->events->update(
+                        $calendarId,
+                        $event->getId(),
+                        $event->prepare()
+                    );
+                    return $response->withJson( [
+                        'success' => true,
+                        'message' => 'Event updated'
+                    ] );
+                } catch (\Google_Service_Exception $exception) {
+                    return $response->withStatus(500)->withJson( [
+                        'success' => false,
+                        'message' => 'Calendar not found'
+                    ] );
+                }
+            }
+
+            return $response->withStatus(500)->withJson( [
+                'success' => false,
+                'message' => $exception->getMessage()
+            ] );
+        } catch (\Google_Service_Exception $exception) {
+            return $response->withStatus(500)->withJson( [
+                'success' => false,
+                'message' => 'Calendar not found'
+            ] );
+        } catch (\Exception $exception) {
+            return $response->withStatus(500)->withJson([
+                'success' => false,
+                'message' => $exception->getMessage()
+            ]);
+        }
+
 	}
 }
