@@ -22,6 +22,12 @@ class EventController extends AbstractController
 	 */
 	public function addEvent(Request $request, Response $response, array $args)
 	{
+        $this->logger->info(sprintf(
+            'Request addEvent, data: %s, content: %s',
+            var_export($args, true),
+            var_export($request->getParsedBody(), true)
+        ));
+
 		$applicationConfig = $this->container->get('settings')->get('application');
 		$client = new Client($applicationConfig['name'], $applicationConfig['credentials']);
 		$client->setScopes([
@@ -33,6 +39,8 @@ class EventController extends AbstractController
 		$tokenPath = $applicationConfig['tokenPath'] . md5($calendarId);
 
 		if (!file_exists($tokenPath)) {
+		    $this->logger->warning(sprintf('Not authorized %s', $calendarId));
+
 			return $response->withStatus(401)->withJson([
 				'success' => false,
 				'message' => 'Unauthorized. Please visit ' .
@@ -53,16 +61,35 @@ class EventController extends AbstractController
 
             $calendar = new CalendarService($client);
             if ($event->isDeleted()) {
+                $this->logger->info(sprintf('Try to delete event %s', var_export([
+                    'calendarId' => $calendarId,
+                    'id' => $event->getId()
+                ], true)));
+
                 $calendar->events->delete(
                     $calendarId,
                     $event->getId()
                 );
             } else {
+                $this->logger->info(sprintf('Try to insert event %s', var_export([
+                    'calendarId' => $calendarId,
+                    'data' => [
+                        'id' => $event->getId(),
+                        'title' => $event->getTitle(),
+                        'description' => $event->getDescription(),
+                        'location' => $event->getLocation(),
+                        'start' => $event->getStart(),
+                        'stop' => $event->getStop()
+                    ]
+                ], true)));
+
                 $calendar->events->insert(
                     $calendarId,
                     $event->prepare()
                 );
             }
+
+            $this->logger->info('Event ' . ($event->isDeleted() ? 'deleted' : 'added'));
 
             return $response->withJson([
                 'success' => true,
@@ -74,18 +101,37 @@ class EventController extends AbstractController
                 'mesage' => $exception->getMessage()
             ]);
         } catch (\Google_Exception $exception) {
+		    $this->logger->warning('Cannot insert or delete event');
+
             if ( $calendar && !$event->isDeleted()) {
                 try {
+                    $this->logger->info(sprintf('Try to update event %s', var_export([
+                        'calendarId' => $calendarId,
+                        'data' => [
+                            'id' => $event->getId(),
+                            'title' => $event->getTitle(),
+                            'description' => $event->getDescription(),
+                            'location' => $event->getLocation(),
+                            'start' => $event->getStart(),
+                            'stop' => $event->getStop()
+                        ]
+                    ], true)));
+
                     $calendar->events->update(
                         $calendarId,
                         $event->getId(),
                         $event->prepare()
                     );
+
+                    $this->logger->info('Event updated');
+
                     return $response->withJson( [
                         'success' => true,
                         'message' => 'Event updated'
                     ] );
                 } catch (\Google_Service_Exception $exception) {
+                    $this->logger->error($exception->getMessage());
+
                     return $response->withStatus(500)->withJson( [
                         'success' => false,
                         'message' => 'Calendar not found'
@@ -93,16 +139,22 @@ class EventController extends AbstractController
                 }
             }
 
+            $this->logger->error($exception->getMessage());
+
             return $response->withStatus(500)->withJson( [
                 'success' => false,
                 'message' => $exception->getMessage()
             ] );
         } catch (\Google_Service_Exception $exception) {
+            $this->logger->error($exception->getMessage());
+
             return $response->withStatus(500)->withJson( [
                 'success' => false,
                 'message' => 'Calendar not found'
             ] );
         } catch (\Exception $exception) {
+            $this->logger->error($exception->getMessage());
+
             return $response->withStatus(500)->withJson([
                 'success' => false,
                 'message' => $exception->getMessage()

@@ -3,6 +3,7 @@
 namespace Controller;
 
 use \Psr\Container\ContainerInterface;
+use Psr\Log\LoggerInterface;
 
 abstract class AbstractController
 {
@@ -10,9 +11,12 @@ abstract class AbstractController
 	protected $container;
 	/** @var \Slim\App  */
 	protected $app;
+	/** @var LoggerInterface  */
+	protected $logger;
 
 	public function __construct(\Slim\App $app) {
 		$this->container = $app->getContainer();
 		$this->app = $app;
+		$this->logger = $this->container->get('logger');
 	}
 }

@@ -20,6 +20,8 @@ class AuthorizeController extends AbstractController
 	 */
 	public function authorize(Request $request, Response $response, array $args)
 	{
+	    $this->logger->info('Request Authorize ' . var_export($args, true));
+
 		if (isset($args['email']) && !filter_var($args['email'], FILTER_VALIDATE_EMAIL)) {
 			return $response->withStatus(400) ->withJson([
 				'success' => false,
@@ -37,16 +39,18 @@ class AuthorizeController extends AbstractController
 
 		if (!empty($request->getParam('code'))) {
 			if (file_exists($tokenPath)) {
+                $this->logger->info(sprintf('Already authorized: %s, %s ', $tokenPath, $request->getParam('code')));
 				return $response->withStatus(200) ->withJson([
 					'success' => true,
 					'message' => 'Already authorized'
 				]);
 			}
 
-			$client->authenticate($_GET['code']);
+			$client->authenticate($request->getParam('code'));
 			$accessToken = $client->getAccessToken();
 
 			if (empty($accessToken)) {
+                $this->logger->error(sprintf('Unable to get access token: %s', $request->getParam('code')));
 				return $response->withStatus(400) ->withJson([
 					'success' => false,
 					'message' => 'Unable to get access token'
@@ -54,10 +58,13 @@ class AuthorizeController extends AbstractController
 			}
 
 			$calendarService = new CalendarService($client);
-			foreach ($calendarService->getCalendarList() as $calendarId) {
+			$calendarList = $calendarService->getCalendarList();
+			foreach ($calendarList as $calendarId) {
                 $tokenPath = $applicationConfig['tokenPath'] . md5($calendarId);
                 file_put_contents($tokenPath, json_encode($accessToken));
             }
+
+            $this->logger->info(sprintf('Authorized calendarsIds: %s', var_export($calendarList, true)));
 
 			return $response->withJson([
 				'success' => true,
@@ -69,6 +76,7 @@ class AuthorizeController extends AbstractController
             $token = json_decode(file_get_contents($tokenPath), true);
             if (!isset($token['refresh_token'])) {
                 unlink($tokenPath);
+                $this->logger->error(sprintf('Refresh token does not exists for %s', $tokenPath));
                 return $response->withStatus(401)->withJson([
                     'success' => false,
                     'message' => sprintf(
@@ -78,6 +86,8 @@ class AuthorizeController extends AbstractController
                 ]);
             }
 
+            $this->logger->info(sprintf('Authorized: %s', $tokenPath));
+
             return $response->withJson([
                 'success' => true,
                 'message' => 'Authorized'
@@ -85,6 +95,8 @@ class AuthorizeController extends AbstractController
         }
 
         if (!$args['email']) {
+            $this->logger->warning(sprintf('Not authorized calendarId: %s', $args['email']));
+
             return $response->withStatus(401)->withJson([
                 'success' => false,
                 'message' => sprintf(
