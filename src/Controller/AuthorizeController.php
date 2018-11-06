@@ -20,7 +20,7 @@ class AuthorizeController extends AbstractController
 	 */
 	public function authorize(Request $request, Response $response, array $args)
 	{
-	    $this->logger->info('Request Authorize ' . var_export($args, true));
+	    $this->logger->info('Request Authorize ' . json_encode($args));
 
 		if (isset($args['email']) && !filter_var($args['email'], FILTER_VALIDATE_EMAIL)) {
 			return $response->withStatus(400) ->withJson([
@@ -64,7 +64,7 @@ class AuthorizeController extends AbstractController
                 file_put_contents($tokenPath, json_encode($accessToken));
             }
 
-            $this->logger->info(sprintf('Authorized calendarsIds: %s', var_export($calendarList, true)));
+            $this->logger->info(sprintf('Authorized calendarsIds: %s', json_encode($calendarList)));
 
 			return $response->withJson([
 				'success' => true,

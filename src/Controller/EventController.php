@@ -24,8 +24,8 @@ class EventController extends AbstractController
 	{
         $this->logger->info(sprintf(
             'Request addEvent, data: %s, content: %s',
-            var_export($args, true),
-            var_export($request->getParsedBody(), true)
+            json_encode($args),
+            json_encode($request->getParsedBody())
         ));
 
 		$applicationConfig = $this->container->get('settings')->get('application');
@@ -61,17 +61,17 @@ class EventController extends AbstractController
 
             $calendar = new CalendarService($client);
             if ($event->isDeleted()) {
-                $this->logger->info(sprintf('Try to delete event %s', var_export([
+                $this->logger->info(sprintf('Try to delete event %s', json_encode([
                     'calendarId' => $calendarId,
                     'id' => $event->getId()
-                ], true)));
+                ])));
 
                 $calendar->events->delete(
                     $calendarId,
                     $event->getId()
                 );
             } else {
-                $this->logger->info(sprintf('Try to insert event %s', var_export([
+                $this->logger->info(sprintf('Try to insert event %s', json_encode([
                     'calendarId' => $calendarId,
                     'data' => [
                         'id' => $event->getId(),
@@ -81,7 +81,7 @@ class EventController extends AbstractController
                         'start' => $event->getStart(),
                         'stop' => $event->getStop()
                     ]
-                ], true)));
+                ])));
 
                 $calendar->events->insert(
                     $calendarId,
@@ -105,7 +105,7 @@ class EventController extends AbstractController
 
             if ( $calendar && !$event->isDeleted()) {
                 try {
-                    $this->logger->info(sprintf('Try to update event %s', var_export([
+                    $this->logger->info(sprintf('Try to update event %s', json_encode([
                         'calendarId' => $calendarId,
                         'data' => [
                             'id' => $event->getId(),
@@ -115,7 +115,7 @@ class EventController extends AbstractController
                             'start' => $event->getStart(),
                             'stop' => $event->getStop()
                         ]
-                    ], true)));
+                    ])));
 
                     $calendar->events->update(
                         $calendarId,
