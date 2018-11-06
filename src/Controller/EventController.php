@@ -52,14 +52,21 @@ class EventController extends AbstractController
             $event = EventFactory::create($customerTag, $request->getParams());
 
             $calendar = new CalendarService($client);
-            $calendar->events->insert(
-                $calendarId,
-                $event->prepare()
-            );
+            if ($event->isDeleted()) {
+                $calendar->events->delete(
+                    $calendarId,
+                    $event->getId()
+                );
+            } else {
+                $calendar->events->insert(
+                    $calendarId,
+                    $event->prepare()
+                );
+            }
 
             return $response->withJson([
                 'success' => true,
-                'message' => 'Event added'
+                'message' => 'Event ' . ($event->isDeleted() ? 'deleted' : 'added')
             ]);
         } catch (EventNotFoundException $exception) {
             return $response->withStatus(400)->withJson([
@@ -67,7 +74,7 @@ class EventController extends AbstractController
                 'mesage' => $exception->getMessage()
             ]);
         } catch (\Google_Exception $exception) {
-            if ( $calendar ) {
+            if ( $calendar && !$event->isDeleted()) {
                 try {
                     $calendar->events->update(
                         $calendarId,

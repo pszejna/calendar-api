@@ -6,44 +6,59 @@ use Application\Event\AbstractEvent;
 
 class TestEvent extends AbstractEvent
 {
-	protected $id;
-	protected $description;
-	protected $title;
-	protected $location;
-	protected $start;
-	protected $stop;
+    protected $id;
+    protected $description;
+    protected $title;
+    protected $location;
+    protected $start;
+    protected $stop;
+    protected $isDeleted = false;
 
-	public function __construct(array $data )
-	{
-		$this->id = $this->generateId('test');
-		$this->description = 'Test description';
-		$this->title = 'Tytół';
-		$this->location = 'ul. Zgierska 21';
-		$this->start = '2018-11-03 10:00';
-		$this->stop = '2018-11-03 11:00';
-	}
+    public function __construct(array $data)
+    {
+        throw new \LogicException('Cannot use test event');
 
-	public function getId() {
-		return $this->id;
-	}
+        $this->id = $this->generateId('test');
+        $this->description = 'Test description';
+        $this->title = 'Tytół';
+        $this->location = 'ul. Zgierska 21';
+        $this->start = '2018-11-03 10:00';
+        $this->stop = '2018-11-03 11:00';
+        $this->isDeleted = false;
+    }
 
-	public function getDescription() {
-		return $this->description;
-	}
+    public function isDeleted()
+    {
+        return $this->isDeleted === true;
+    }
 
-	public function getLocation() {
-		return $this->location;
-	}
+    public function getId()
+    {
+        return $this->id;
+    }
 
-	public function getStart() {
-		return $this->start;
-	}
+    public function getDescription()
+    {
+        return $this->description;
+    }
 
-	public function getStop() {
-		return $this->stop;
-	}
+    public function getLocation()
+    {
+        return $this->location;
+    }
 
-	public function getTitle() {
-		return $this->title;
-	}
+    public function getStart()
+    {
+        return $this->start;
+    }
+
+    public function getStop()
+    {
+        return $this->stop;
+    }
+
+    public function getTitle()
+    {
+        return $this->title;
+    }
 }

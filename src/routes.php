@@ -12,7 +12,7 @@ $app->get('/authorize[/{email}]', function (Request $request, Response $response
 	return $controller->authorize($request, $response, $args);
 })->setName('authorize');
 
-$app->get('/event/{tag}/{email}', function(Request $request, Response $response, array $args) use ($app) {
+$app->post('/event/{tag}/{email}', function(Request $request, Response $response, array $args) use ($app) {
 	$controller = new EventController($app);
 	return $controller->addEvent($request, $response, $args);
 });
