@@ -86,6 +86,21 @@ class AuthorizeController extends AbstractController
                 ]);
             }
 
+            $client->setToken($tokenPath);
+            $isAccessTokenExpired = $client->isAccessTokenExpired();
+            if ($isAccessTokenExpired) {
+                $client->refreshToken($client->getRefreshToken());
+            }
+
+            $calendarService = new CalendarService($client);
+            $calendarList = $calendarService->getCalendarList();
+            foreach ($calendarList as $calendarId) {
+                $calendarTokenPath = $applicationConfig['tokenPath'] . md5($calendarId);
+                if (!file_exists($calendarTokenPath)) {
+                    file_put_contents($calendarTokenPath, json_encode($token));
+                }
+            }
+
             $this->logger->info(sprintf('Authorized: %s', $tokenPath));
 
             return $response->withJson([
